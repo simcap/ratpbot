@@ -1,0 +1,34 @@
+ <!DOCTYPE html>
+<html>
+<head>
+  <title>Ratp Bot</title>
+  <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
+  <script type="text/javascript">
+$(document).ready(function() {
+  $("#send").on("click", function(event) {
+    $.ajax({
+        dataType: "json",
+        url: "/api",
+        data: { q:  $("#question").val()},
+        success: function(data) {
+         $("#dialog").append(
+           "<p><i>(you)</i>" + data.question + "</p>" +
+           "<p><i>(ratpbot)</i>" + data.answer + "</p>" + "<hr/>"
+          );
+        }
+    });
+  });
+});
+</script>
+</head>
+
+<body>
+  <section>
+    <div>
+      <i>(you)</i><input id="question" type="text"></input><button id="send">send</button>
+    </div>
+
+    <div id="dialog"></div>
+  </section>
+</body>
+</html> 
