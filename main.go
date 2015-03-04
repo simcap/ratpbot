@@ -24,6 +24,7 @@ func api(w http.ResponseWriter, r *http.Request) {
 
 	question := &Question{text: r.URL.Query().Get("q")}
 	answer := process(question)
+
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"answer":   answer.text,
 		"question": question.text,
@@ -40,17 +41,34 @@ type Answer struct {
 
 func process(q *Question) Answer {
 	text := q.text
-	metroEnquiry := regexp.MustCompile("\\b[123456789]\\b{1}|\\b10|11|12|13|14\\b")
-	rerEnquiry := regexp.MustCompile("\\b(?:[Rr][Ee][Rr])?([ABCDE]){1}\\b")
 
-	metroMatch := metroEnquiry.FindStringSubmatch(text)
-	if metroMatch != nil {
-		return Answer{text: fmt.Sprintf("Ligne %s", metroMatch[1])}
+	if item, ok := MetroLineDetector.item(text); ok {
+		return Answer{text: fmt.Sprintf("Ligne %s", item)}
 	}
 
-	rerMatch := rerEnquiry.FindStringSubmatch(text)
-	if rerMatch != nil {
-		return Answer{text: fmt.Sprintf("RER %s", rerMatch[1])}
+	if item, ok := RerLineDetector.item(text); ok {
+		return Answer{text: fmt.Sprintf("Rer %s", item)}
 	}
+
 	return Answer{text: "Hmmm..."}
+}
+
+var (
+	MetroLineDetector = Detector{
+		regexp.MustCompile("\\b([123456789])\\b|(1[01234])\\b"),
+	}
+	RerLineDetector = Detector{
+		regexp.MustCompile("\\b(?:[Rr][Ee][Rr])?([ABCDE]){1}\\b"),
+	}
+)
+
+type Detector struct {
+	reg *regexp.Regexp
+}
+
+func (d *Detector) item(text string) (string, bool) {
+	if item := d.reg.FindStringSubmatch(text); len(item) > 1 {
+		return item[1], true
+	}
+	return "", false
 }
