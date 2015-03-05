@@ -5,6 +5,8 @@ import (
 	"math/rand"
 	"regexp"
 	"strings"
+
+	"github.com/simcap/ratpbot/services"
 )
 
 func Reply(q *Question) Answer {
@@ -18,7 +20,12 @@ func Reply(q *Question) Answer {
 		return SimpleAnswer{fmt.Sprintf("Rer %s", item)}
 	}
 
-	return UnsureAnswer
+	if _, ok := GlobalTrafficDetector.item(text); ok {
+		response, _ := services.GlobalTraffic{}.Get()
+		return SimpleAnswer{response}
+	}
+
+	return NewAnswer(UnsureAnswer, UsageAnswer)
 
 }
 
@@ -47,9 +54,19 @@ func (a RandomAnswer) Text() string {
 	return a.answers[index].Text()
 }
 
-var UnsureAnswer = RandomAnswer{
-	[]Answer{SimpleAnswer{"wtf?"}, SimpleAnswer{"What do you mean?"}, SimpleAnswer{"Hmm..."}},
-}
+var (
+	UnsureAnswer = RandomAnswer{
+		[]Answer{
+			SimpleAnswer{"wtf?"},
+			SimpleAnswer{"What do you mean?"},
+			SimpleAnswer{"Hmm..."},
+		},
+	}
+
+	UsageAnswer = SimpleAnswer{
+		`Let me help you. Type '?' for global traffic info. For a line type the corresponding number/letter`,
+	}
+)
 
 func NewAnswer(answers ...Answer) Answer {
 	all := []string{}
@@ -60,6 +77,9 @@ func NewAnswer(answers ...Answer) Answer {
 }
 
 var (
+	GlobalTrafficDetector = Detector{
+		regexp.MustCompile("^\\s*(\\?)\\s*$"),
+	}
 	MetroLineDetector = Detector{
 		regexp.MustCompile("\\b([123456789])\\b|(1[01234])\\b"),
 	}
