@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/simcap/ratpbot/services"
+	"github.com/simcap/ratpbot/ratp"
 )
 
 func Reply(q *Question) Answer {
@@ -21,8 +21,16 @@ func Reply(q *Question) Answer {
 	}
 
 	if _, ok := GlobalTrafficDetector.item(text); ok {
-		response, _ := services.GlobalTraffic{}.Get()
-		return SimpleAnswer{response}
+		message := ratp.GlobalTraffic()
+		return SimpleAnswer{message.Text}
+	}
+	if _, ok := RerTrafficDetector.item(text); ok {
+		message := ratp.RerTraffic()
+		return SimpleAnswer{message.Text}
+	}
+	if _, ok := MetroTrafficDetector.item(text); ok {
+		message := ratp.MetroTraffic()
+		return SimpleAnswer{message.Text}
 	}
 
 	return NewAnswer(UnsureAnswer, UsageAnswer)
@@ -78,13 +86,19 @@ func NewAnswer(answers ...Answer) Answer {
 
 var (
 	GlobalTrafficDetector = Detector{
-		regexp.MustCompile("^\\s*(\\?)\\s*$"),
+		regexp.MustCompile(`^\s*(\?)\s*$`),
+	}
+	MetroTrafficDetector = Detector{
+		regexp.MustCompile(`(?i)^\b*(metro)\b*\s*\??$`),
+	}
+	RerTrafficDetector = Detector{
+		regexp.MustCompile(`(?i)^\b*(rer)\b*\s*\??$`),
 	}
 	MetroLineDetector = Detector{
-		regexp.MustCompile("\\b([123456789])\\b|(1[01234])\\b"),
+		regexp.MustCompile(`\b([123456789])\b|(1[01234])\b`),
 	}
 	RerLineDetector = Detector{
-		regexp.MustCompile("\\b(?:[Rr][Ee][Rr])?([ABCDE]){1}\\b"),
+		regexp.MustCompile(`\b(?:[Rr][Ee][Rr])?([ABCDE]){1}\b`),
 	}
 )
 
