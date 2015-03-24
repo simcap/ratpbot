@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"text/template"
-
-	"github.com/simcap/ratpbot/bot"
 )
 
 func main() {
@@ -23,7 +21,7 @@ func api(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 	question := r.URL.Query().Get("q")
-	reply := bot.Process(question)
+	reply := Process(question)
 
 	json.NewEncoder(w).Encode(reply)
 }

@@ -1,4 +1,4 @@
-package ratp
+package main
 
 import (
 	"io/ioutil"

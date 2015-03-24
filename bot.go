@@ -1,12 +1,10 @@
-package bot
+package main
 
 import (
 	"fmt"
 	"math/rand"
 	"regexp"
 	"strings"
-
-	"github.com/simcap/ratpbot/ratp"
 )
 
 func Process(text string) *Reply {
@@ -19,13 +17,13 @@ func Process(text string) *Reply {
 	} else if item, ok := RerLineDetector.item(text); ok {
 		reply.Answer = SimpleAnswer{fmt.Sprintf("Rer %s", item)}.Text()
 	} else if _, ok := GlobalTrafficDetector.item(text); ok {
-		message := ratp.GlobalTraffic()
+		message := GlobalTraffic()
 		reply.Answer = SimpleAnswer{message.Text}.Text()
 	} else if _, ok := RerTrafficDetector.item(text); ok {
-		message := ratp.RerTraffic()
+		message := RerTraffic()
 		reply.Answer = SimpleAnswer{message.Text}.Text()
 	} else if _, ok := MetroTrafficDetector.item(text); ok {
-		message := ratp.MetroTraffic()
+		message := MetroTraffic()
 		reply.Answer = SimpleAnswer{message.Text}.Text()
 	} else {
 		reply.Answer = NewAnswer(UnsureAnswer, UsageAnswer).Text()
