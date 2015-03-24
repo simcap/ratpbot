@@ -22,11 +22,8 @@ func home(w http.ResponseWriter, r *http.Request) {
 func api(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
-	question := &bot.Question{r.URL.Query().Get("q")}
-	answer := bot.Reply(question)
+	question := r.URL.Query().Get("q")
+	reply := bot.Process(question)
 
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"answer":   answer.Text(),
-		"question": question.Text,
-	})
+	json.NewEncoder(w).Encode(reply)
 }

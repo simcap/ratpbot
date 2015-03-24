@@ -9,36 +9,34 @@ import (
 	"github.com/simcap/ratpbot/ratp"
 )
 
-func Reply(q *Question) Answer {
-	text := q.Text
+func Process(text string) *Reply {
+	reply := new(Reply)
+
+	reply.Question = text
 
 	if item, ok := MetroLineDetector.item(text); ok {
-		return SimpleAnswer{fmt.Sprintf("Ligne %s", item)}
-	}
-
-	if item, ok := RerLineDetector.item(text); ok {
-		return SimpleAnswer{fmt.Sprintf("Rer %s", item)}
-	}
-
-	if _, ok := GlobalTrafficDetector.item(text); ok {
+		reply.Answer = SimpleAnswer{fmt.Sprintf("Ligne %s", item)}.Text()
+	} else if item, ok := RerLineDetector.item(text); ok {
+		reply.Answer = SimpleAnswer{fmt.Sprintf("Rer %s", item)}.Text()
+	} else if _, ok := GlobalTrafficDetector.item(text); ok {
 		message := ratp.GlobalTraffic()
-		return SimpleAnswer{message.Text}
-	}
-	if _, ok := RerTrafficDetector.item(text); ok {
+		reply.Answer = SimpleAnswer{message.Text}.Text()
+	} else if _, ok := RerTrafficDetector.item(text); ok {
 		message := ratp.RerTraffic()
-		return SimpleAnswer{message.Text}
-	}
-	if _, ok := MetroTrafficDetector.item(text); ok {
+		reply.Answer = SimpleAnswer{message.Text}.Text()
+	} else if _, ok := MetroTrafficDetector.item(text); ok {
 		message := ratp.MetroTraffic()
-		return SimpleAnswer{message.Text}
+		reply.Answer = SimpleAnswer{message.Text}.Text()
+	} else {
+		reply.Answer = NewAnswer(UnsureAnswer, UsageAnswer).Text()
 	}
 
-	return NewAnswer(UnsureAnswer, UsageAnswer)
-
+	return reply
 }
 
-type Question struct {
-	Text string
+type Reply struct {
+	Question string `json:"question"`
+	Answer   string `json:"answer"`
 }
 
 type Answer interface {
@@ -95,7 +93,7 @@ var (
 		regexp.MustCompile(`(?i)^\b*(rer)\b*\s*\??$`),
 	}
 	MetroLineDetector = Detector{
-		regexp.MustCompile(`\b([123456789])\b|(1[01234])\b`),
+		regexp.MustCompile(`\b([123456789]\b|1[01234])\b`),
 	}
 	RerLineDetector = Detector{
 		regexp.MustCompile(`\b(?:[Rr][Ee][Rr])?([ABCDE]){1}\b`),
