@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"text/template"
 )
@@ -13,7 +14,10 @@ func main() {
 }
 
 func home(w http.ResponseWriter, r *http.Request) {
-	t, _ := template.ParseFiles("home.html")
+	t, err := template.ParseFiles("home.html")
+	if err != nil {
+		log.Printf("Error parsing template %v", err)
+	}
 	t.Execute(w, nil)
 }
 
