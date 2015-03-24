@@ -7,27 +7,11 @@ import (
 	"strings"
 )
 
-func Process(text string) *Reply {
+func BotReply(question string) *Reply {
 	reply := new(Reply)
 
-	reply.Question = text
-
-	if item, ok := MetroLineDetector.item(text); ok {
-		reply.Answer = SimpleAnswer{fmt.Sprintf("Ligne %s", item)}.Text()
-	} else if item, ok := RerLineDetector.item(text); ok {
-		reply.Answer = SimpleAnswer{fmt.Sprintf("Rer %s", item)}.Text()
-	} else if _, ok := GlobalTrafficDetector.item(text); ok {
-		message := GlobalTraffic()
-		reply.Answer = SimpleAnswer{message.Text}.Text()
-	} else if _, ok := RerTrafficDetector.item(text); ok {
-		message := RerTraffic()
-		reply.Answer = SimpleAnswer{message.Text}.Text()
-	} else if _, ok := MetroTrafficDetector.item(text); ok {
-		message := MetroTraffic()
-		reply.Answer = SimpleAnswer{message.Text}.Text()
-	} else {
-		reply.Answer = NewAnswer(UnsureAnswer, UsageAnswer).Text()
-	}
+	reply.Question = question
+	reply.Answer = detectors.run(question).Text()
 
 	return reply
 }
@@ -81,30 +65,90 @@ func NewAnswer(answers ...Answer) Answer {
 }
 
 var (
-	GlobalTrafficDetector = Detector{
-		regexp.MustCompile(`^\s*(\?)\s*$`),
-	}
-	MetroTrafficDetector = Detector{
-		regexp.MustCompile(`(?i)^\b*(metro)\b*\s*\??$`),
-	}
-	RerTrafficDetector = Detector{
-		regexp.MustCompile(`(?i)^\b*(rer)\b*\s*\??$`),
-	}
-	MetroLineDetector = Detector{
-		regexp.MustCompile(`\b([123456789]\b|1[01234])\b`),
-	}
-	RerLineDetector = Detector{
-		regexp.MustCompile(`\b(?:[Rr][Ee][Rr])?([ABCDE]){1}\b`),
-	}
+	GlobalTrafficDetector = NewRegexpDetector(`^\s*(\?)\s*$`)
+	MetroTrafficDetector  = NewRegexpDetector(`(?i)^\b*(metro)\b*\s*\??$`)
+	RerTrafficDetector    = NewRegexpDetector(`(?i)^\b*(rer)\b*\s*\??$`)
+	MetroLineDetector     = NewRegexpDetector(`\b([123456789]\b|1[01234])\b`)
+	RerLineDetector       = NewRegexpDetector(`\b(?:[Rr][Ee][Rr])?([ABCDE]){1}\b`)
+	NoActionDetector      = &NullDetector{}
 )
 
-type Detector struct {
+var detectors DetectorChain = []Detector{
+	MetroLineDetector,
+	RerLineDetector,
+	GlobalTrafficDetector,
+	RerTrafficDetector,
+	MetroTrafficDetector,
+}
+
+type answering func(text string) Answer
+
+var Responses = responsesTable()
+
+func responsesTable() map[Detector]answering {
+	return map[Detector]answering{
+		MetroLineDetector: func(text string) Answer {
+			return SimpleAnswer{fmt.Sprintf("Ligne %s", text)}
+		},
+		RerLineDetector: func(text string) Answer {
+			return SimpleAnswer{fmt.Sprintf("Rer %s", text)}
+		},
+		GlobalTrafficDetector: func(text string) Answer {
+			message := GlobalTraffic()
+			return SimpleAnswer{message.Text}
+		},
+		RerTrafficDetector: func(text string) Answer {
+			message := RerTraffic()
+			return SimpleAnswer{message.Text}
+		},
+		MetroTrafficDetector: func(text string) Answer {
+			message := MetroTraffic()
+			return SimpleAnswer{message.Text}
+		},
+		NoActionDetector: func(text string) Answer {
+			return NewAnswer(UnsureAnswer, UsageAnswer)
+		},
+	}
+}
+
+type DetectorChain []Detector
+
+func (c *DetectorChain) run(text string) Answer {
+	var detector Detector = NoActionDetector
+	var detected string
+
+	for _, d := range *c {
+		if grabbed, ok := d.grab(text); ok {
+			detector = d
+			detected = grabbed
+			break
+		}
+	}
+
+	return Responses[detector](detected)
+}
+
+type Detector interface {
+	grab(text string) (string, bool)
+}
+
+type RegexpDetector struct {
 	reg *regexp.Regexp
 }
 
-func (d *Detector) item(text string) (string, bool) {
+func NewRegexpDetector(exp string) *RegexpDetector {
+	return &RegexpDetector{regexp.MustCompile(exp)}
+}
+
+func (d *RegexpDetector) grab(text string) (string, bool) {
 	if item := d.reg.FindStringSubmatch(text); len(item) > 1 {
 		return item[1], true
 	}
 	return "", false
+}
+
+type NullDetector struct{}
+
+func (nd *NullDetector) grab(text string) (string, bool) {
+	return "", true
 }
